@@ -63,31 +63,37 @@ def add_permissions(user_name, services, region):
             print(f"S3 access added to user '{user_name}' in region '{region}'.")
 
         elif service == 'AmazonEC2':
-            ec2_policy_document ={
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Action": "ec2:*",
-            "Resource": "*",
-            "Effect": "Allow",
-            "Condition": {
-                "StringEquals": {
+            # EC2 policy to allow running t2.micro instances in the specified region
+            ec2_policy_document = {
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                     "Effect": "Allow",
+                    "Action": "ec2:*",
+                    "Resource": "*",
+                    "Condition": {
+                    "StringEquals": {
                     "ec2:Region": "us-east-1"
-                }
-            }
+                                }
+                            }
+                        }
+                    ]
         }
-    ]
-}
+
+
             ec2_policy_response = iam_client.create_policy(
                 PolicyName=f"{user_name}-EC2Policy",
                 PolicyDocument=json.dumps(ec2_policy_document)
             )
+
             iam_client.attach_user_policy(
                 UserName=user_name,
                 PolicyArn=ec2_policy_response['Policy']['Arn']
             )
-            print(f"EC2 access added to user '{user_name}' in region '{region}'.")
 
+            print(f"EC2 access added to user '{user_name}' in region '{region}'. "
+                  f"User can only launch t2.micro instances in {region}.")
+            
         elif service == 'AmazonVPC':
             vpc_policy_document = {
                 "Version": "2012-10-17",
