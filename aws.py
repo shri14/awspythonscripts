@@ -1,8 +1,5 @@
-import boto3
-import random
-import string
-import json
-
+import boto3 import random import string import json
+#hello
 def create_iam_user(user_name):
     iam_client = boto3.client('iam')
 
