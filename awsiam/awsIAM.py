@@ -4,15 +4,21 @@ import string
 import json
 import csv
 import pandas as pd
-from iam_api import app
-import pymongo
+
 
 def read_user_data_from_csv(csv_file):
     user_data = []
-    with open(csv_file, 'r') as file:
-        reader = csv.DictReader(file)
-        for row in reader:
-            user_data.append(row)
+    try:
+        df = pd.read_csv(csv_file)
+        for _, row in df.iterrows():
+            user_name = row['name']  # Adjust the key to 'name' to match the actual column header
+            group_name = row['Group']  # Assuming 'Group' is correct, keep it unchanged
+            if user_name and group_name:
+                user_data.append({'User': user_name, 'Group': group_name})
+            else:
+                print("Skipping row with missing 'name' or 'Group' data:", row)
+    except Exception as e:
+        print(f"Error reading CSV file: {e}")
     return user_data
 
 
@@ -48,26 +54,13 @@ def create_iam_group(group_name):
 def add_permissions(user_name, services, region):
     iam_client = boto3.client('iam')
 
-    # Create IAM policy for the user with 'iam:ChangePassword' action only
-    change_password_policy_document = {
-        "Version": "2012-10-17",
-        "Statement": [
-            {
-                "Effect": "Allow",
-                "Action": "iam:ChangePassword",
-                "Resource": f"arn:aws:iam::*:user/{user_name}"
-            }
-        ]
-    }
-    change_password_policy_response = iam_client.create_policy(
-        PolicyName=f"{user_name}-ChangePasswordPolicy",
-        PolicyDocument=json.dumps(change_password_policy_document)
-    )
-    iam_client.attach_user_policy(
-        UserName=user_name,
-        PolicyArn=change_password_policy_response['Policy']['Arn']
-    )
-    print(f"IAMUserChangePassword policy added to user '{user_name}' in region '{region}'.")
+     # Attach the AWS managed policy "IAMUserChangePassword" to the user
+    managed_policy_arn = "arn:aws:iam::aws:policy/IAMUserChangePassword"
+    try:
+        iam_client.attach_user_policy(UserName=user_name, PolicyArn=managed_policy_arn)
+        print(f"AWS managed policy 'IAMUserChangePassword' added to user '{user_name}' in region '{region}'.")
+    except Exception as e:
+        print(f"Failed to attach AWS managed policy 'IAMUserChangePassword' to user '{user_name}': {e}")
 
 def generate_random_password(length=10):
     characters = string.ascii_letters + string.digits + string.punctuation
@@ -83,29 +76,7 @@ def get_console_signin_url():
     return f"https://{account_id}.signin.aws.amazon.com/console"
 
 def main():
-    herovired_group = create_iam_group("herovired")
-
-    
-
-   # Replace 'users.csv' with the actual name of your CSV file.
-    
-def read_user_data_from_csv(csv_file):
-    user_data = []
-    try:
-        df = pd.read_csv(csv_file)
-        for _, row in df.iterrows():
-            user_name = row['name']  # Adjust the key to 'name' to match the actual column header
-            group_name = row['Group']  # Assuming 'Group' is correct, keep it unchanged
-            if user_name and group_name:
-                user_data.append({'User': user_name, 'Group': group_name})
-            else:
-                print("Skipping row with missing 'name' or 'Group' data:", row)
-    except Exception as e:
-        print(f"Error reading CSV file: {e}")
-    return user_data
-
-def main():
-    herovired_group = create_iam_group("herovired")
+    herovired_group = create_iam_group("heroviredB3")
 
     # Replace 'users.csv' with the actual name of your CSV file.
     user_data = read_user_data_from_csv('users.csv')
@@ -118,7 +89,7 @@ def main():
 
         if user_created:
             add_user_to_group(user, group)
-            add_permissions(user, [], 'us-east-1')  # Empty services list as no additional permissions needed
+            add_permissions(user, [], 'ap-south-1')  # Empty services list as no additional permissions needed
             temporary_password = generate_random_password()
             iam_client = boto3.client('iam')
             iam_client.create_login_profile(
@@ -130,16 +101,6 @@ def main():
             print(f"User '{user}' Console sign-in URL: {console_signin_url}")
             print(f"Username: {user}")
             print(f"Temporary Password: {temporary_password}")
-
-            
-            # Store IAM user data in MongoDB through the API
-            response = app.test_client().get('/iam_users')  # Fetch IAM users from the API
-            iam_users = response.json
-            if iam_users:
-                iam_users.append(data)
-            else:
-                iam_users = [data]
-            app.test_client().put('/iam_users', json=iam_users)  # Store updated IAM users through the API
-            
+ 
 if __name__ == "__main__":
     main()

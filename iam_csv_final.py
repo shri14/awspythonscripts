@@ -75,7 +75,7 @@ def get_console_signin_url():
     return f"https://{account_id}.signin.aws.amazon.com/console"
 
 def main():
-    herovired_group = create_iam_group("herovired")
+    herovired_group = create_iam_group("heroviredB3")
 
     # Replace 'users.csv' with the actual name of your CSV file.
     user_data = read_user_data_from_csv('users.csv')
@@ -88,7 +88,7 @@ def main():
 
         if user_created:
             add_user_to_group(user, group)
-            add_permissions(user, [], 'us-east-1')  # Empty services list as no additional permissions needed
+            add_permissions(user, [], 'ap-south-1')  # Empty services list as no additional permissions needed
             temporary_password = generate_random_password()
             iam_client = boto3.client('iam')
             iam_client.create_login_profile(
